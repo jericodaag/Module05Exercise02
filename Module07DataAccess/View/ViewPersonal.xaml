@@ -48,6 +48,11 @@
 
     <ScrollView>
         <VerticalStackLayout Padding="16">
+            <Image Source="logo.png"
+                   HeightRequest="100"
+                   Aspect="AspectFit"
+                   Margin="0,0,0,16"/>
+
             <Label Text="Personal Information"
                    Style="{StaticResource HeaderLabelStyle}"/>
 
@@ -57,7 +62,6 @@
                    Padding="0"
                    Margin="0,0,0,16"
                    HeightRequest="300">
-                <!-- Added fixed height for ListView container -->
                 <ListView ItemsSource="{Binding PersonalList}" 
                           SelectedItem="{Binding SelectedPersonal}"
                           BackgroundColor="Transparent"
@@ -69,17 +73,39 @@
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto"/>
                                         <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
                                     </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
                                     <Label Text="{Binding Name}" 
                                            TextColor="#C9D1D9"
                                            FontSize="16"
-                                           FontAttributes="Bold"/>
+                                           FontAttributes="Bold"
+                                           Grid.Column="0"/>
+
                                     <Label Text="{Binding Gender}" 
                                            Grid.Row="1"
+                                           Grid.Column="0"
                                            TextColor="#8B949E"
                                            FontSize="14"
                                            Margin="0,4,0,0"/>
+
+                                    <Label Text="{Binding Email}" 
+                                           Grid.Row="2"
+                                           Grid.Column="0"
+                                           TextColor="#8B949E"
+                                           FontSize="14"
+                                           Margin="0,4,0,0"/>
+
+                                    <Label Text="{Binding ContactNo}"
+                                           Grid.Column="1"
+                                           Grid.Row="0"
+                                           TextColor="#8B949E"
+                                           FontSize="14"
+                                           HorizontalOptions="End"/>
 
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer 
@@ -122,16 +148,30 @@
                            Text="{Binding NewPersonalContactNo}"
                            Style="{StaticResource CustomEntryStyle}"/>
 
-                    <Button Text="Add Person" 
-                            Command="{Binding AddPersonalCommand}"
-                            Style="{StaticResource CustomButtonStyle}"
-                            HorizontalOptions="Center"/>
-                    <Button Text="Delete Person"
-                            Command="{Binding DeletePersonCommand}"
-                            IsEnabled="{Binding IsPersonSelected}"
-                            Style="{StaticResource CustomButtonStyle}"
-                            HorizontalOptions="Center"/>
-                    
+                    <Entry Placeholder="Address"
+                           Text="{Binding NewPersonalAddress}"
+                           Style="{StaticResource CustomEntryStyle}"/>
+
+                    <Entry Placeholder="Email"
+                           Text="{Binding NewPersonalEmail}"
+                           Style="{StaticResource CustomEntryStyle}"
+                           Keyboard="Email"/>
+
+                    <HorizontalStackLayout HorizontalOptions="Center" Spacing="8">
+                        <Button Text="Add Person" 
+                                Command="{Binding AddPersonalCommand}"
+                                Style="{StaticResource CustomButtonStyle}"/>
+
+                        <Button Text="Update Person"
+                                Command="{Binding UpdatePersonalCommand}"
+                                IsEnabled="{Binding IsPersonSelected}"
+                                Style="{StaticResource CustomButtonStyle}"/>
+
+                        <Button Text="Delete Person"
+                                Command="{Binding DeletePersonCommand}"
+                                IsEnabled="{Binding IsPersonSelected}"
+                                Style="{StaticResource CustomButtonStyle}"/>
+                    </HorizontalStackLayout>
                 </VerticalStackLayout>
             </Frame>
         </VerticalStackLayout>

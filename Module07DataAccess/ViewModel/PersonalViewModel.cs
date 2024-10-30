@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Module07DataAccess.Services;
 using Module07DataAccess.Model;
- using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
@@ -20,7 +20,6 @@ namespace Module07DataAccess.ViewModel
         public ObservableCollection<Personal> PersonalList { get; set; }
 
         private bool _isBusy;
-
         public bool IsBusy
         {
             get => _isBusy;
@@ -43,6 +42,8 @@ namespace Module07DataAccess.ViewModel
                     NewPersonalName = _selectedPersonal.Name;
                     NewPersonalGender = _selectedPersonal.Gender;
                     NewPersonalContactNo = _selectedPersonal.ContactNo;
+                    NewPersonalAddress = _selectedPersonal.Address; 
+                    NewPersonalEmail = _selectedPersonal.Email; 
                     IsPersonSelected = true;
                 }
                 else
@@ -75,8 +76,7 @@ namespace Module07DataAccess.ViewModel
             }
         }
 
-
-        //New Personal entry for name, gender, contact no
+        // Personal properties
         private string _newPersonalName;
         public string NewPersonalName
         {
@@ -110,33 +110,59 @@ namespace Module07DataAccess.ViewModel
             }
         }
 
+        // New properties for Address and Email
+        private string _newPersonalAddress;
+        public string NewPersonalAddress
+        {
+            get => _newPersonalAddress;
+            set
+            {
+                _newPersonalAddress = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string _newPersonalEmail;
+        public string NewPersonalEmail
+        {
+            get => _newPersonalEmail;
+            set
+            {
+                _newPersonalEmail = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // Commands
         public ICommand LoadDataCommand { get; }
         public ICommand AddPersonalCommand { get; }
         public ICommand SelectedPersonCommand { get; }
-        public ICommand DeletePersonCommand  { get; }
+        public ICommand DeletePersonCommand { get; }
+        public ICommand UpdatePersonalCommand { get; }
 
-        //Personal ViewModel Constructor
-
+        // Constructor
         public PersonalViewModel()
-        { 
+        {
             _personalService = new PersonalService();
             PersonalList = new ObservableCollection<Personal>();
+
             LoadDataCommand = new Command(async () => await LoadData());
-            AddPersonalCommand = new Command(async() => await AddPerson());
+            AddPersonalCommand = new Command(async () => await AddPerson());
             SelectedPersonCommand = new Command<Personal>(person => SelectedPersonal = person);
-            DeletePersonCommand = new Command(async () =>
-                                  await DeletePersonal(),
-                                  () => SelectedPersonal != null);
+            DeletePersonCommand = new Command(async () => await DeletePersonal(),
+                                           () => SelectedPersonal != null);
+            UpdatePersonalCommand = new Command(async () => await UpdatePerson(),
+                                             () => SelectedPersonal != null);
 
             LoadData();
-
         }
 
         public async Task LoadData()
         {
             if (IsBusy) return;
             IsBusy = true;
-            StatusMessage = "Load personal Data...";
+            StatusMessage = "Loading personal data...";
+
             try
             {
                 var personals = await _personalService.GetAllPersonalAsync();
@@ -145,7 +171,7 @@ namespace Module07DataAccess.ViewModel
                 {
                     PersonalList.Add(personal);
                 }
-                StatusMessage = "Data Loaded successfully";
+                StatusMessage = "Data loaded successfully";
             }
             catch (Exception ex)
             {
@@ -155,17 +181,26 @@ namespace Module07DataAccess.ViewModel
             {
                 IsBusy = false;
             }
-
         }
 
         private async Task AddPerson()
         {
-            if (IsBusy || string.IsNullOrWhiteSpace(NewPersonalName) || string.IsNullOrWhiteSpace(NewPersonalGender) ||
-                string.IsNullOrWhiteSpace(NewPersonalContactNo))
+            if (IsBusy || string.IsNullOrWhiteSpace(NewPersonalName) ||
+                string.IsNullOrWhiteSpace(NewPersonalGender) ||
+                string.IsNullOrWhiteSpace(NewPersonalContactNo) ||
+                string.IsNullOrWhiteSpace(NewPersonalAddress) ||
+                string.IsNullOrWhiteSpace(NewPersonalEmail)) 
             {
                 StatusMessage = "Please fill in all the fields before adding";
                 return;
             }
+
+            if (!IsValidEmail(NewPersonalEmail))
+            {
+                StatusMessage = "Please enter a valid email address";
+                return;
+            }
+
             IsBusy = true;
             StatusMessage = "Adding new person...";
 
@@ -176,14 +211,15 @@ namespace Module07DataAccess.ViewModel
                     Name = NewPersonalName,
                     Gender = NewPersonalGender,
                     ContactNo = NewPersonalContactNo,
+                    Address = NewPersonalAddress,
+                    Email = NewPersonalEmail 
                 };
+
                 var isSuccess = await _personalService.AddPersonalAsync(newPerson);
-                if (isSuccess) 
-                { 
-                    NewPersonalName = string.Empty;
-                    NewPersonalGender = string.Empty;
-                    NewPersonalContactNo = string.Empty;
-                    StatusMessage = "New Person added successfully";
+                if (isSuccess)
+                {
+                    ClearFields();
+                    StatusMessage = "New person added successfully";
                 }
                 else
                 {
@@ -192,27 +228,84 @@ namespace Module07DataAccess.ViewModel
             }
             catch (Exception ex)
             {
-                StatusMessage = $"Failed to add the new person {ex.Message}";
+                StatusMessage = $"Failed to add the new person: {ex.Message}";
             }
-            finally { 
-                
-                    IsBusy = false;
+            finally
+            {
+                IsBusy = false;
+                await LoadData();
+            }
+        }
+
+        private async Task UpdatePerson()
+        {
+            if (SelectedPersonal == null) return;
+
+            if (string.IsNullOrWhiteSpace(NewPersonalName) ||
+                string.IsNullOrWhiteSpace(NewPersonalGender) ||
+                string.IsNullOrWhiteSpace(NewPersonalContactNo) ||
+                string.IsNullOrWhiteSpace(NewPersonalAddress) ||
+                string.IsNullOrWhiteSpace(NewPersonalEmail))
+            {
+                StatusMessage = "Please fill in all fields before updating";
+                return;
+            }
+
+            if (!IsValidEmail(NewPersonalEmail))
+            {
+                StatusMessage = "Please enter a valid email address";
+                return;
+            }
+
+            IsBusy = true;
+            StatusMessage = "Updating person...";
+
+            try
+            {
+                var updatedPerson = new Personal
+                {
+                    ID = SelectedPersonal.ID,
+                    Name = NewPersonalName,
+                    Gender = NewPersonalGender,
+                    ContactNo = NewPersonalContactNo,
+                    Address = NewPersonalAddress,
+                    Email = NewPersonalEmail
+                };
+
+                var success = await _personalService.UpdatePersonalAsync(updatedPerson);
+                if (success)
+                {
+                    StatusMessage = "Person updated successfully";
                     await LoadData();
-            
+                }
+                else
+                {
+                    StatusMessage = "Failed to update person";
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error updating person: {ex.Message}";
+            }
+            finally
+            {
+                IsBusy = false;
             }
         }
 
         private async Task DeletePersonal()
         {
             if (SelectedPersonal == null) return;
-            var answer = await Application.Current.MainPage.DisplayAlert
-                ("Confirm Delete", $"Are you sure you want to delete {SelectedPersonal.Name}?", 
-                "Yes", "No" );
+
+            var answer = await Application.Current.MainPage.DisplayAlert(
+                "Confirm Delete",
+                $"Are you sure you want to delete {SelectedPersonal.Name}?",
+                "Yes", "No");
 
             if (!answer) return;
 
             IsBusy = true;
-            StatusMessage = "Deleting person..";
+            StatusMessage = "Deleting person...";
 
             try
             {
@@ -223,8 +316,9 @@ namespace Module07DataAccess.ViewModel
                 {
                     PersonalList.Remove(SelectedPersonal);
                     SelectedPersonal = null;
+                    ClearFields();
                 }
-            }  
+            }
             catch (Exception ex)
             {
                 StatusMessage = $"Error deleting person: {ex.Message}";
@@ -235,9 +329,30 @@ namespace Module07DataAccess.ViewModel
             }
         }
 
+        private void ClearFields()
+        {
+            NewPersonalName = string.Empty;
+            NewPersonalGender = string.Empty;
+            NewPersonalContactNo = string.Empty;
+            NewPersonalAddress = string.Empty;
+            NewPersonalEmail = string.Empty;
+        }
+
+        private bool IsValidEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                return addr.Address == email;
+            }
+            catch
+            {
+                return false;
+            }
+        }
 
         public event PropertyChangedEventHandler PropertyChanged;
-        
+
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
